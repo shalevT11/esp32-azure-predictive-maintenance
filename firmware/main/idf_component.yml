@@ -1,0 +1,8 @@
+## IDF Component Manager manifest.
+## Declares external components pulled into managed_components/ on build.
+dependencies:
+  idf: ">=5.0"
+  # Official Microsoft middleware. Uncomment when you reach Stage 2 (cloud).
+  # Browse versions: https://components.espressif.com/
+  # azure-iot-middleware-freertos:
+  #   git: https://github.com/Azure/azure-iot-middleware-freertos.git

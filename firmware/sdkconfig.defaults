@@ -1,0 +1,13 @@
+# Project defaults. Run `idf.py build` to generate the full sdkconfig.
+
+# FreeRTOS tick rate (1ms) — finer scheduling granularity for the sensor task
+CONFIG_FREERTOS_HZ=1000
+
+# Enable TLS (mbedTLS) — required for MQTT to Azure IoT Hub
+CONFIG_ESP_TLS_USING_MBEDTLS=y
+
+# Bump main task stack a little (TLS handshakes are stack-hungry)
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+
+# Log level: INFO
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
