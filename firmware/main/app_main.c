@@ -1,97 +1,61 @@
-/*
- * Predictive Maintenance — ESP32 firmware skeleton
- * ------------------------------------------------
- * Two FreeRTOS tasks joined by a queue:
- *   sensor_read_task  — periodically reads the sensor, pushes a sample to the queue
- *   cloud_tx_task     — drains the queue, publishes each sample to Azure IoT Hub
- *
- * This skeleton COMPILES AND RUNS with DUMMY data so you have a working base.
- * The two cores that matter in interviews are left for YOU to implement — see the
- * `TODO (YOU)` markers. Do not let a generator write these; that bit-level and
- * memory-management code is exactly what gets probed.
- */
-
-#include <stdio.h>
-#include <string.h>
-#include "freertos/FreeRTOS.h"
+ #include "esp_log.h" //the tools of the prints
+#include "freertos/FreeRTOS.h" //the tools of the FreeRTOS (-to create and manage task)
 #include "freertos/task.h"
 #include "freertos/queue.h"
-#include "esp_log.h"
 
-static const char *TAG = "pdm";
 
-/* One telemetry sample. Extend with the fields your sensor actually provides. */
-typedef struct {
-    uint32_t seq;        /* monotonic sample counter            */
-    int64_t  ts_ms;      /* timestamp (ms since boot for now)   */
-    float    value;      /* e.g. vibration magnitude / temp C   */
-} sample_t;
+static const char *TAG = "pdm"; //the label in the print, every part has his label
+ /**
+  * I (310) wifi:   connected to network
+  * I (315) sensor: read value 20.5
+  * I (320) pdm:    sending to cloud...
+  */
 
-static QueueHandle_t s_sample_queue;
+static QueueHandle_t counter_queue; //the handle for the queue
+ 
 
-#define SENSOR_PERIOD_MS   1000
-#define QUEUE_DEPTH        16
 
-/* ------------------------------------------------------------------ */
-/* Task 1: read the sensor                                            */
-/* ------------------------------------------------------------------ */
-static void sensor_read_task(void *arg)
-{
-    uint32_t seq = 0;
-    TickType_t last = xTaskGetTickCount();
 
-    /* TODO (YOU): initialise I2C and configure the sensor at register level.
-     * - i2c_param_config() / i2c_driver_install()
-     * - write the sensor's config registers (read the datasheet; use bit masks)
-     * For now we emit a dummy ramp so the pipeline runs end-to-end. */
 
-    for (;;) {
-        sample_t s = {
-            .seq   = seq++,
-            .ts_ms = esp_log_timestamp(),
-            /* TODO (YOU): replace with a real register read + conversion.
-             * e.g. read ACCEL_XOUT_H/L from an MPU6050 over I2C and compute magnitude. */
-            .value = 20.0f + (float)(seq % 10),
-        };
+static void counter_task(void *args){ //the task function - counts up
+   
+   int count = 0;
+   for(;;){ //forever loop, the task runs forever
+      count++;
+      vTaskDelay(pdMS_TO_TICKS(1000)); //sleep
 
-        if (xQueueSend(s_sample_queue, &s, pdMS_TO_TICKS(100)) != pdTRUE) {
-            ESP_LOGW(TAG, "queue full, dropped sample %u", (unsigned)s.seq);
-        }
-        vTaskDelayUntil(&last, pdMS_TO_TICKS(SENSOR_PERIOD_MS));
-    }
+      xQueueSend(counter_queue, &count, portMAX_DELAY); //sends the count value
+   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Task 2: publish to the cloud                                       */
-/* ------------------------------------------------------------------ */
-static void cloud_tx_task(void *arg)
-{
-    /* TODO (YOU): bring up WiFi, then the Azure connection.
-     * - connect WiFi (esp_wifi / example_connect)
-     * - provision via DPS, then connect to IoT Hub
-     * - init azure-iot-middleware-freertos: it does NO dynamic allocation, so
-     *   you own the buffers; implement TLS setup and retry/reconnect yourself. */
+static void print_task(void *args){
+   for(;;){ //forever loop, the task runs forever
 
-    sample_t s;
-    for (;;) {
-        if (xQueueReceive(s_sample_queue, &s, portMAX_DELAY) == pdTRUE) {
-            /* For now: just log. Replace with an MQTT publish. */
-            ESP_LOGI(TAG, "sample seq=%u ts=%lld value=%.2f",
-                     (unsigned)s.seq, s.ts_ms, s.value);
+      int received; //the variable that will hold the received value
+      xQueueReceive(counter_queue, &received, portMAX_DELAY); //gets the value to received (got from xQueueSend)
 
-            /* TODO (YOU): build the JSON payload and publish over MQTT/TLS,
-             * with retry + exponential backoff on failure. */
-        }
-    }
+      ESP_LOGI(TAG, "count = %d", received); //printing the num
+
+   }
 }
 
-void app_main(void)
-{
-    ESP_LOGI(TAG, "predictive-maintenance firmware starting");
+void app_main(void){
 
-    s_sample_queue = xQueueCreate(QUEUE_DEPTH, sizeof(sample_t));
-    configASSERT(s_sample_queue != NULL);
+   ESP_LOGI(TAG, "starting..."); //print, the I is Info
 
-    xTaskCreate(sensor_read_task, "sensor_read", 4096, NULL, 5, NULL);
-    xTaskCreate(cloud_tx_task,    "cloud_tx",    8192, NULL, 4, NULL);
-}
+   counter_queue = xQueueCreate(10, sizeof(int)); //creates the queue
+
+    /*
+    1. which func to run
+    2. name for debug
+    3. how many stack the task gets
+    4. which parameter to send
+    5. priority
+    6. handle the task
+    */
+    xTaskCreate(counter_task, "counter", 4096, NULL, 5, NULL); //create and starts the task of counter
+    xTaskCreate(print_task, "print", 4096, NULL, 5, NULL); //create and starts the task of print
+
+ }
+
+
