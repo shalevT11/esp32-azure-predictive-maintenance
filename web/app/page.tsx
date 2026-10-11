@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 
-type Sample = { seq: number; tsMs: number; value: number};
+type Sample = { seq: number; tsMs: number; value: number}; //same as the Sample of the backend
 
 export default function Home(){
   const [samples, setSamples] = useState<Sample[]>([]); //the memory of react
@@ -27,9 +27,9 @@ export default function Home(){
   return (
     <main style={{ padding: 32, fontFamily: 'monospace'}}>
       <h1>Live Telemetry</h1>
-      {samples.length === 0 && <p>Waiting for data...</p>}
+      {samples.length === 0 && <p>Waiting for data...</p>} {/*placement until data come */}
       <ul>
-        {samples.map((s) =>(
+        {samples.map((s) =>( //every line is another sample
           <li key={s.seq}>#{s.seq} - value: {s.value.toFixed(2)}</li>
         ))}
       </ul>
