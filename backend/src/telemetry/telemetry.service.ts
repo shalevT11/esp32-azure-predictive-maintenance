@@ -11,12 +11,18 @@ export class TelemetryService {
   private readonly log = new Logger(TelemetryService.name);
 
   /**
+   * send every call to the gateway, and he broadcast to the dashboard
    * TODO: connect to the Azure IoT Hub Event Hub-compatible endpoint
-   * (@azure/event-hubs) and call onSample() for each received message.
-   * For Stage 3 you can start by POSTing fake samples to a test endpoint.
+   * now we use fake calls
    */
   async start(onSample: (s: Sample) => void): Promise<void> {
-    this.log.warn('IoT Hub consumer not wired yet — see TODO');
+    let seq = 0;          //counter for the samples
+    setInterval(() => {   //one call every sec
+      const value = 1.0 + Math.random() * 0.3; //fake value: base 1.0 + random noise
+      const sample: Sample = { seq: seq++, tsMs: Date.now(), value};
+      onSample(sample); //the gateway broadcast to the dashboard
+    }, 1000);
+
   }
 
   /**

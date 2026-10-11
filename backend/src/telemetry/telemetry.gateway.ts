@@ -13,7 +13,7 @@ import { Sample, TelemetryService } from './telemetry.service';
 @WebSocketGateway({ cors: true })
 export class TelemetryGateway implements OnModuleInit {
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   constructor(private readonly telemetry: TelemetryService) {}
 
