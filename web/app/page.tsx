@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"; //imports the components of recharts
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts"; //imports the components of recharts
 
 type Sample = { seq: number; tsMs: number; value: number}; //same as the Sample of the backend
 
@@ -38,6 +38,7 @@ export default function Home(){
           <XAxis dataKey="seq"/>
           <YAxis domain={[0.8, 1.4]}/>
           <Tooltip/>
+          <ReferenceLine y={1.25} stroke="red" strokeDasharray="4 4" label= "סף אנומליה"/>
           <Line type="monotone" dataKey="value" stroke="#4f46e5" dot={false} isAnimationActive={false}/>
         </LineChart>
       </ResponsiveContainer>
