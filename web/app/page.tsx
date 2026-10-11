@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"; //imports the components of recharts
 
 type Sample = { seq: number; tsMs: number; value: number}; //same as the Sample of the backend
 
@@ -20,19 +21,26 @@ export default function Home(){
       //new is the last 15
     });
 
+
     return () => {socket.disconnect();};   //the func ret disconnect when we leave the page
 
   }, []);
+
+  const chartData = [...samples].reverse(); //graph need from left to right
 
   return (
     <main style={{ padding: 32, fontFamily: 'monospace'}}>
       <h1>Live Telemetry</h1>
       {samples.length === 0 && <p>Waiting for data...</p>} {/*placement until data come */}
-      <ul>
-        {samples.map((s) =>( //every line is another sample
-          <li key={s.seq}>#{s.seq} - value: {s.value.toFixed(2)}</li>
-        ))}
-      </ul>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3"/>
+          <XAxis dataKey="seq"/>
+          <YAxis domain={[0.8, 1.4]}/>
+          <Tooltip/>
+          <Line type="monotone" dataKey="value" stroke="#4f46e5" dot={false} isAnimationActive={false}/>
+        </LineChart>
+      </ResponsiveContainer>
     </main>
   );
 
