@@ -1,3 +1,4 @@
+import { EventHubConsumerClient } from '@azure/event-hubs';
 import { Injectable, Logger } from '@nestjs/common';
 
 export interface Sample {
@@ -13,19 +14,29 @@ export class TelemetryService {
   private readonly WINDOW_SIZE = 30;
 
   /**
-   * send every call to the gateway, and he broadcast to the dashboard
-   * TODO: connect to the Azure IoT Hub Event Hub-compatible endpoint
-   * now we use fake calls
+   * SUB to the IoT HUB
+   * each msg -> Sample -> onSample
    */
   async start(onSample: (s: Sample) => void): Promise<void> {
-    let seq = 0;          //counter for the samples
-    setInterval(() => {   //one call every sec
-      const spike = Math.random() < 0.05; //jump 5% from the time
-      const value = spike ? 1.5 : 1.0 + Math.random() * 0.3; //fake value: base 1.0 + random noise
-      const sample: Sample = { seq: seq++, tsMs: Date.now(), value};
-      onSample(sample); //the gateway broadcast to the dashboard
-    }, 1000);
+      const connectionString = process.env.EVENTHUB_CONNECTION_STRING!; //the secret from .env
+      const consumerGroup = '$Default';        //consumer group = read cursor; default
 
+      const client = new EventHubConsumerClient(consumerGroup, connectionString);
+
+      client.subscribe({
+          processEvents: async (events) => { //events come from cloud in baches
+              for(const event of events) {
+                const data = event.body; //SDK auto-parges body when contentType is application/json
+                const sample: Sample = { seq: data.seq, tsMs: Date.now(), value: data.value };
+                onSample(sample); //same contract as the fake source - flow to broadcast
+              }
+          },
+          processError: async (err) => { //if somethig wrong (like exception)
+            this.log.error(err);
+          },
+      });
+
+      this.log.log('Subscribed to IoT, waiting for telemetry...');
   }
 
   /**
