@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Provide placeholder secrets (real secrets.h is gitignored)
+        run: cp firmware/main/secrets.h.example firmware/main/secrets.h
       - name: Build with ESP-IDF
         uses: espressif/esp-idf-ci-action@v1
         with:
