@@ -181,7 +181,10 @@ void app_main(void){
    char topic[128];
    snprintf(topic, sizeof(topic), "devices/%s/messages/events/", AZURE_DEVICE_ID); //Azure D2C topic
 
-   for(;;){ //read accel forever, every 500ms
+   float peak = 0;   //we wanna catch the pick at a time
+   int reads = 0; //nums of timr we make a read
+   
+   for(;;){ //read accel forever, every 200ms
       i2c_master_transmit_receive(dev_handle, &accel_reg, 1, data, 6, 1000); //burst read, read reg that attch to each other
 
       //combine High+Low byte 16-bit signed-> +- int16
@@ -191,15 +194,25 @@ void app_main(void){
 
       float mag = sqrtf((float)ax*ax + (float)ay*ay + (float)az*az) / 16384.0f;
 
-      char payload[64]; //build payload JSON
-      snprintf(payload, sizeof(payload), "{\"seq\":%d,\"value\":%.3f}", seq++, mag);
+      if (mag > peak) //to follow the peak
+      {
+         peak = mag;
+      }
+      reads++; 
 
-      esp_mqtt_client_publish(mqtt_client, topic, payload, 0, 1, 0); //publish to Azure (API - plumbing)
-      ESP_LOGI(TAG, "sent: %s", payload);
-
+      if (reads >= 50) //calc the pick from a 50 reads in a window
+      {
+         char payload[64]; //build payload JSON
+         snprintf(payload, sizeof(payload), "{\"seq\":%d,\"value\":%.3f}", seq++, peak); //sends the peak from the window
+         esp_mqtt_client_publish(mqtt_client, topic, payload, 0, 1, 0); //publish to Azure (API - plumbing)
+         ESP_LOGI(TAG, "sent: %s", payload);
+         peak = 0; //calc a new pick at the next window
+         reads = 0;
+      }
+      
       ESP_LOGI(TAG, "ax=%d ay=%d az=%d", ax, ay, az);
 
-      vTaskDelay(pdMS_TO_TICKS(500)); //read every half sec
+      vTaskDelay(pdMS_TO_TICKS(200)); //read every 0.2 sec
    }
 
 

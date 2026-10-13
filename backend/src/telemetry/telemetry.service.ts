@@ -11,7 +11,7 @@ export interface Sample {
 export class TelemetryService {
   private readonly log = new Logger(TelemetryService.name);
   private readonly window: number[] = []; //the window hold the last 30 sample for cpmparing
-  private readonly WINDOW_SIZE = 30;
+  private readonly WINDOW_SIZE = 15;
 
   /**
    * SUB to the IoT HUB
@@ -52,7 +52,7 @@ export class TelemetryService {
    * Returns true if the sample looks anomalous.
    */
   isAnomaly(s: Sample): boolean {
-    if (this.window.length < 15) { //not enough to jugde on problem
+    if (this.window.length < 5) { //not enough to jugde on problem
       this.window.push(s.value);
       return false;
     }
