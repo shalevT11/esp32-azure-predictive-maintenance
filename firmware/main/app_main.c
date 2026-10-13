@@ -176,21 +176,33 @@ void app_main(void){
    ESP_LOGI(TAG, "PWR_MGMT = 0x%02X after", value); 
 
    uint8_t accel_reg = 0x2D; //start address (ACCEL_XOUT_H)
-   uint8_t data[6]; //6 diff bytes into 1 arr ->X,Y,Z 
+   uint8_t data[14]; //6 diff bytes into 1 arr ->X,Y,Z, +6 for GYRO, and +2 for TEMP
    int seq = 0;
    char topic[128];
    snprintf(topic, sizeof(topic), "devices/%s/messages/events/", AZURE_DEVICE_ID); //Azure D2C topic
 
    float peak = 0;   //we wanna catch the pick at a time
    int reads = 0; //nums of timr we make a read
+
+
    
    for(;;){ //read accel forever, every 200ms
-      i2c_master_transmit_receive(dev_handle, &accel_reg, 1, data, 6, 1000); //burst read, read reg that attch to each other
+      i2c_master_transmit_receive(dev_handle, &accel_reg, 1, data, 14, 1000); //burst read, read reg that attch to each other
 
       //combine High+Low byte 16-bit signed-> +- int16
       int16_t ax = (int16_t)((data[0] << 8) | data[1]);
       int16_t ay = (int16_t)((data[2] << 8) | data[3]);
       int16_t az = (int16_t)((data[4] << 8) | data[5]);
+
+      //GYRO, also attach to each other, and the accel
+      int16_t gx = (int16_t)((data[6] << 8) | data[7]);
+      int16_t gy = (int16_t)((data[8] << 8) | data[9]);
+      int16_t gz = (int16_t)((data[10] << 8) | data[11]);
+
+      //the temp of the sensor
+      int16_t temp_raw = (int16_t)((data[12] << 8) | data[13]);
+      float temp_c = (temp_raw / 333.87f) + 21.0f; //calc from the datasheet
+
 
       float mag = sqrtf((float)ax*ax + (float)ay*ay + (float)az*az) / 16384.0f;
 
@@ -208,9 +220,10 @@ void app_main(void){
          ESP_LOGI(TAG, "sent: %s", payload);
          peak = 0; //calc a new pick at the next window
          reads = 0;
+
+         ESP_LOGI(TAG, "accel: ax=%d ay=%d az=%d  |  gyro: gx=%d gy=%d gz=%d  |  temp: %.1fC", ax, ay, az, gx, gy, gz, temp_c);
       }
       
-      ESP_LOGI(TAG, "ax=%d ay=%d az=%d", ax, ay, az);
 
       vTaskDelay(pdMS_TO_TICKS(200)); //read every 0.2 sec
    }
