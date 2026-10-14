@@ -212,7 +212,9 @@ void app_main(void){
       }
       reads++; 
 
-      if (reads >= 50) //calc the pick from a 50 reads in a window
+      // 50 = send the PEAK of the window every ~10s (quota-safe, the real behavior).
+      // Drop to ~5 (every ~1s) ONLY to film a snappy demo video, then revert to 50.
+      if (reads >= 50) //peak over the window -> one message per window
       {
          char payload[64]; //build payload JSON
          snprintf(payload, sizeof(payload), "{\"seq\":%d,\"value\":%.3f}", seq++, peak); //sends the peak from the window
@@ -224,7 +226,6 @@ void app_main(void){
          ESP_LOGI(TAG, "accel: ax=%d ay=%d az=%d  |  gyro: gx=%d gy=%d gz=%d  |  temp: %.1fC", ax, ay, az, gx, gy, gz, temp_c);
       }
       
-
       vTaskDelay(pdMS_TO_TICKS(200)); //read every 0.2 sec
    }
 
